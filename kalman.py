@@ -59,3 +59,20 @@ def box_noise(h):
     # R：检测器有多不准，顺序 [cx, cy, a, h]
     R = np.diag([std_pos, std_pos, 1e-1, std_pos]) ** 2
     return Q, R
+
+
+def kf_predict(s, P, F, Q):
+    """只做预测那一半。跟踪时要拆开用：先预测，再拿预测去匹配，匹配上了才更新。"""
+    s_pred = F @ s
+    P_pred = F @ P @ F.T + Q
+    return s_pred, P_pred
+
+
+def kf_update(s_pred, P_pred, z, H, R):
+    """只做更新那一半，和 kf_step 后半段一样。"""
+    r = z - H @ s_pred
+    S = H @ P_pred @ H.T + R
+    K = P_pred @ H.T @ np.linalg.inv(S)
+    s_new = s_pred + K @ r
+    P_new = (np.eye(len(s_pred)) - K @ H) @ P_pred
+    return s_new, P_new
